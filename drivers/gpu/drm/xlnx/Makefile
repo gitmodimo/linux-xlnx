@@ -10,6 +10,8 @@ obj-$(CONFIG_DRM_XLNX_BRIDGE_VTC) += xlnx_vtc.o
 
 obj-$(CONFIG_DRM_XLNX_DSI) += xlnx_dsi.o
 
+obj-$(CONFIG_DRM_OPEN_DSI) += open_dsi.o
+
 obj-$(CONFIG_DRM_XLNX_MIXER) += xlnx_mixer.o
 
 obj-$(CONFIG_DRM_XLNX_PL_DISP) += xlnx_pl_disp.o
