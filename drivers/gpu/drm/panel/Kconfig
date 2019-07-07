@@ -152,6 +152,13 @@ config DRM_PANEL_LG_LH350WS1
 	depends on OF
 	select DRM_MIPI_DSI
 	select VIDEOMODE_HELPERS
+	
+	
+config DRM_PANEL_AML_FRD500V
+	tristate "Amelin AML-FRD500V DSI video mode panel"
+	depends on OF
+	select DRM_MIPI_DSI
+
 
 config DRM_PANEL_SEIKO_43WVF1G
 	tristate "Seiko 43WVF1G panel"

@@ -1,5 +1,5 @@
 /*
- * MIPI-DSI based lh320ws1 AMOLED LCD 5.3 inch panel driver.
+ * MIPI-DSI based lh350ws1 AMOLED LCD 5.3 inch panel driver.
  *
  * Copyright (c) 2013 Samsung Electronics Co., Ltd
  *
@@ -31,7 +31,7 @@
 
 
 
-struct lh320ws1 {
+struct lh350ws1 {
 	struct device *dev;
 	struct drm_panel panel;
 
@@ -59,12 +59,12 @@ struct lh320ws1 {
 	int error;
 };
 
-static inline struct lh320ws1 *panel_to_lh320ws1(struct drm_panel *panel)
+static inline struct lh350ws1 *panel_to_lh350ws1(struct drm_panel *panel)
 {
-	return container_of(panel, struct lh320ws1, panel);
+	return container_of(panel, struct lh350ws1, panel);
 }
 
-static int lh320ws1_clear_error(struct lh320ws1 *ctx)
+static int lh350ws1_clear_error(struct lh350ws1 *ctx)
 {
 	int ret = ctx->error;
 
@@ -72,7 +72,7 @@ static int lh320ws1_clear_error(struct lh320ws1 *ctx)
 	return ret;
 }
 
-static void lh320ws1_dcs_write(struct lh320ws1 *ctx, const void *data, size_t len)
+static void lh350ws1_dcs_write(struct lh350ws1 *ctx, const void *data, size_t len)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 	ssize_t ret;
@@ -88,7 +88,7 @@ static void lh320ws1_dcs_write(struct lh320ws1 *ctx, const void *data, size_t le
 	}
 }
 /*
-static int lh320ws1_dcs_read(struct lh320ws1 *ctx, u8 cmd, void *data, size_t len)
+static int lh350ws1_dcs_read(struct lh350ws1 *ctx, u8 cmd, void *data, size_t len)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 	int ret;
@@ -106,30 +106,30 @@ static int lh320ws1_dcs_read(struct lh320ws1 *ctx, u8 cmd, void *data, size_t le
 }*/
 
 
-#define lh320ws1_dcs_write_seq_static(ctx, seq...) \
+#define lh350ws1_dcs_write_seq_static(ctx, seq...) \
 ({\
 	static const u8 d[] = { seq };\
-	lh320ws1_dcs_write(ctx, d, ARRAY_SIZE(d));\
+	lh350ws1_dcs_write(ctx, d, ARRAY_SIZE(d));\
 })
 
 
 
 /*
-#define lh320ws1_dcs_write_seq(ctx, seq...) \
+#define lh350ws1_dcs_write_seq(ctx, seq...) \
 ({\
 	const u8 d[] = { seq };\
 	BUILD_BUG_ON_MSG(ARRAY_SIZE(d) > 64, "DCS sequence too big for stack");\
-	lh320ws1_dcs_write(ctx, d, ARRAY_SIZE(d));\
+	lh350ws1_dcs_write(ctx, d, ARRAY_SIZE(d));\
 })
 
 
 
-static void lh320ws1_apply_level_1_key(struct lh320ws1 *ctx)
+static void lh350ws1_apply_level_1_key(struct lh350ws1 *ctx)
 {
-	lh320ws1_dcs_write_seq_static(ctx, 0xf0, 0x5a, 0x5a);
+	lh350ws1_dcs_write_seq_static(ctx, 0xf0, 0x5a, 0x5a);
 }
 
-static void lh320ws1_panel_cond_set_v142(struct lh320ws1 *ctx)
+static void lh350ws1_panel_cond_set_v142(struct lh350ws1 *ctx)
 {
 	static const u8 aids[] = {
 		0x04, 0x04, 0x04, 0x04, 0x04, 0x60, 0x80, 0xA0
@@ -191,7 +191,7 @@ static void lh320ws1_panel_cond_set_v142(struct lh320ws1 *ctx)
 			PANELCTL_EM_INT2_001);
 	}
 
-	lh320ws1_dcs_write_seq(ctx,
+	lh350ws1_dcs_write_seq(ctx,
 		0xf8, cfg, 0x35, 0x00, 0x00, 0x00, 0x93, 0x00,
 		0x3c, 0x78, 0x08, 0x27, 0x7d, 0x3f, 0x00, 0x00,
 		0x00, 0x20, aid, 0x08, 0x6e, 0x00, 0x00, 0x00,
@@ -200,10 +200,10 @@ static void lh320ws1_panel_cond_set_v142(struct lh320ws1 *ctx)
 		em_int_con);
 }*/
 /*
-static void lh320ws1_panel_cond_set(struct lh320ws1 *ctx)
+static void lh350ws1_panel_cond_set(struct lh350ws1 *ctx)
 {
 	if (ctx->version < 142)
-		lh320ws1_dcs_write_seq_static(ctx,
+		lh350ws1_dcs_write_seq_static(ctx,
 			0xf8, 0x19, 0x35, 0x00, 0x00, 0x00, 0x94, 0x00,
 			0x3c, 0x78, 0x10, 0x27, 0x08, 0x6e, 0x00, 0x00,
 			0x00, 0x00, 0x04, 0x08, 0x6e, 0x00, 0x00, 0x00,
@@ -211,20 +211,20 @@ static void lh320ws1_panel_cond_set(struct lh320ws1 *ctx)
 			0x81, 0xc1, 0x00, 0xc3, 0xf6, 0xf6, 0xc1
 		);
 	else
-		lh320ws1_panel_cond_set_v142(ctx);
+		lh350ws1_panel_cond_set_v142(ctx);
 }
 
-static void lh320ws1_display_condition_set(struct lh320ws1 *ctx)
+static void lh350ws1_display_condition_set(struct lh350ws1 *ctx)
 {
-	lh320ws1_dcs_write_seq_static(ctx, 0xf2, 0x80, 0x03, 0x0d);
+	lh350ws1_dcs_write_seq_static(ctx, 0xf2, 0x80, 0x03, 0x0d);
 }
 
-static void lh320ws1_etc_source_control(struct lh320ws1 *ctx)
+static void lh350ws1_etc_source_control(struct lh350ws1 *ctx)
 {
-	lh320ws1_dcs_write_seq_static(ctx, 0xf6, 0x00, 0x02, 0x00);
+	lh350ws1_dcs_write_seq_static(ctx, 0xf6, 0x00, 0x02, 0x00);
 }
 
-static void lh320ws1_etc_pentile_control(struct lh320ws1 *ctx)
+static void lh350ws1_etc_pentile_control(struct lh350ws1 *ctx)
 {
 	static const u8 pent32[] = {
 		0xb6, 0x0c, 0x02, 0x03, 0x32, 0xc0, 0x44, 0x44, 0xc0, 0x00
@@ -235,12 +235,12 @@ static void lh320ws1_etc_pentile_control(struct lh320ws1 *ctx)
 	};
 
 	if (ctx->version < 142)
-		lh320ws1_dcs_write(ctx, pent32, ARRAY_SIZE(pent32));
+		lh350ws1_dcs_write(ctx, pent32, ARRAY_SIZE(pent32));
 	else
-		lh320ws1_dcs_write(ctx, pent142, ARRAY_SIZE(pent142));
+		lh350ws1_dcs_write(ctx, pent142, ARRAY_SIZE(pent142));
 }
 
-static void lh320ws1_etc_power_control(struct lh320ws1 *ctx)
+static void lh350ws1_etc_power_control(struct lh350ws1 *ctx)
 {
 	static const u8 pwr142[] = {
 		0xf4, 0xcf, 0x0a, 0x12, 0x10, 0x1e, 0x33, 0x02
@@ -251,19 +251,19 @@ static void lh320ws1_etc_power_control(struct lh320ws1 *ctx)
 	};
 
 	if (ctx->version < 142)
-		lh320ws1_dcs_write(ctx, pwr32, ARRAY_SIZE(pwr32));
+		lh350ws1_dcs_write(ctx, pwr32, ARRAY_SIZE(pwr32));
 	else
-		lh320ws1_dcs_write(ctx, pwr142, ARRAY_SIZE(pwr142));
+		lh350ws1_dcs_write(ctx, pwr142, ARRAY_SIZE(pwr142));
 }
 
-static void lh320ws1_etc_elvss_control(struct lh320ws1 *ctx)
+static void lh350ws1_etc_elvss_control(struct lh350ws1 *ctx)
 {
 	u8 id = ctx->id ? 0 : 0x95;
 
-	lh320ws1_dcs_write_seq(ctx, 0xb1, 0x04, id);
+	lh350ws1_dcs_write_seq(ctx, 0xb1, 0x04, id);
 }*/
 /*
-static void lh320ws1_elvss_nvm_set_v142(struct lh320ws1 *ctx)
+static void lh350ws1_elvss_nvm_set_v142(struct lh350ws1 *ctx)
 {
 	u8 br;
 
@@ -283,26 +283,26 @@ static void lh320ws1_elvss_nvm_set_v142(struct lh320ws1 *ctx)
 		break;
 	}
 
-	lh320ws1_dcs_write_seq(ctx, 0xd9, 0x14, 0x40, 0x0c, 0xcb, 0xce, 0x6e,
+	lh350ws1_dcs_write_seq(ctx, 0xd9, 0x14, 0x40, 0x0c, 0xcb, 0xce, 0x6e,
 		0xc4, 0x0f, 0x40, 0x41, br, 0x00, 0x60, 0x19);
 }
 
-static void lh320ws1_elvss_nvm_set(struct lh320ws1 *ctx)
+static void lh350ws1_elvss_nvm_set(struct lh350ws1 *ctx)
 {
 	if (ctx->version < 142)
-		lh320ws1_dcs_write_seq_static(ctx,
+		lh350ws1_dcs_write_seq_static(ctx,
 			0xd9, 0x14, 0x40, 0x0c, 0xcb, 0xce, 0x6e, 0xc4, 0x07,
 			0x40, 0x41, 0xc1, 0x00, 0x60, 0x19);
 	else
-		lh320ws1_elvss_nvm_set_v142(ctx);
+		lh350ws1_elvss_nvm_set_v142(ctx);
 };
 
-static void lh320ws1_apply_level_2_key(struct lh320ws1 *ctx)
+static void lh350ws1_apply_level_2_key(struct lh350ws1 *ctx)
 {
-	lh320ws1_dcs_write_seq_static(ctx, 0xfc, 0x5a, 0x5a);
+	lh350ws1_dcs_write_seq_static(ctx, 0xfc, 0x5a, 0x5a);
 }
 
-static const lh320ws1_gamma_table lh320ws1_gamma_tables_v142[GAMMA_LEVEL_NUM] = {
+static const lh350ws1_gamma_table lh350ws1_gamma_tables_v142[GAMMA_LEVEL_NUM] = {
 	{
 		0xfa, 0x01, 0x71, 0x31, 0x7b, 0x62, 0x55, 0x55,
 		0xaf, 0xb1, 0xb1, 0xbd, 0xce, 0xb7, 0x9a, 0xb1,
@@ -431,7 +431,7 @@ static const lh320ws1_gamma_table lh320ws1_gamma_tables_v142[GAMMA_LEVEL_NUM] = 
 	},
 };
 
-static const lh320ws1_gamma_table lh320ws1_gamma_tables_v96[GAMMA_LEVEL_NUM] = {
+static const lh350ws1_gamma_table lh350ws1_gamma_tables_v96[GAMMA_LEVEL_NUM] = {
 	{
 		0xfa, 0x01, 0x1f, 0x1f, 0x1f, 0xff, 0x00, 0xff,
 		0xdf, 0x1f, 0xd7, 0xdc, 0xb7, 0xe1, 0xc0, 0xaf,
@@ -561,7 +561,7 @@ static const lh320ws1_gamma_table lh320ws1_gamma_tables_v96[GAMMA_LEVEL_NUM] = {
 	}
 };
 
-static const lh320ws1_gamma_table lh320ws1_gamma_tables_v32[GAMMA_LEVEL_NUM] = {
+static const lh350ws1_gamma_table lh350ws1_gamma_tables_v32[GAMMA_LEVEL_NUM] = {
 	{
 		0xfa, 0x01, 0x43, 0x14, 0x45, 0x72, 0x5e, 0x6b,
 		0xa1, 0xa7, 0x9a, 0xb4, 0xcb, 0xb8, 0x92, 0xac,
@@ -690,23 +690,23 @@ static const lh320ws1_gamma_table lh320ws1_gamma_tables_v32[GAMMA_LEVEL_NUM] = {
 	},
 };
 
-static const struct lh320ws1_variant lh320ws1_variants[] = {
+static const struct lh350ws1_variant lh350ws1_variants[] = {
 	{
 		.version = 32,
-		.gamma_tables = lh320ws1_gamma_tables_v32,
+		.gamma_tables = lh350ws1_gamma_tables_v32,
 	}, {
 		.version = 96,
-		.gamma_tables = lh320ws1_gamma_tables_v96,
+		.gamma_tables = lh350ws1_gamma_tables_v96,
 	}, {
 		.version = 142,
-		.gamma_tables = lh320ws1_gamma_tables_v142,
+		.gamma_tables = lh350ws1_gamma_tables_v142,
 	}, {
 		.version = 210,
-		.gamma_tables = lh320ws1_gamma_tables_v142,
+		.gamma_tables = lh350ws1_gamma_tables_v142,
 	}
 };
 
-static void lh320ws1_brightness_set(struct lh320ws1 *ctx)
+static void lh350ws1_brightness_set(struct lh350ws1 *ctx)
 {
 	const u8 *gamma;
 
@@ -716,45 +716,45 @@ static void lh320ws1_brightness_set(struct lh320ws1 *ctx)
 	gamma = ctx->variant->gamma_tables[ctx->brightness];
 
 	if (ctx->version >= 142)
-		lh320ws1_elvss_nvm_set(ctx);
+		lh350ws1_elvss_nvm_set(ctx);
 
-	lh320ws1_dcs_write(ctx, gamma, GAMMA_TABLE_LEN);
+	lh350ws1_dcs_write(ctx, gamma, GAMMA_TABLE_LEN);
 
 	// update gamma table.
-	lh320ws1_dcs_write_seq_static(ctx, 0xf7, 0x03);
+	lh350ws1_dcs_write_seq_static(ctx, 0xf7, 0x03);
 }*/
 
 
 
-static void lh320ws1_panel_init(struct lh320ws1 *ctx)
+static void lh350ws1_panel_init(struct lh350ws1 *ctx)
 {
 
 
 
-	dev_dbg(ctx->dev, "lh320ws1_panel_init\n");
+	dev_dbg(ctx->dev, "lh350ws1_panel_init\n");
 
 
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_SLEEP_MODE);
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_SLEEP_MODE);
 
-	/*lh320ws1_apply_level_1_key(ctx);
-	lh320ws1_apply_level_2_key(ctx);
+	/*lh350ws1_apply_level_1_key(ctx);
+	lh350ws1_apply_level_2_key(ctx);
 	msleep(20);
 
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_SLEEP_MODE);
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_SLEEP_MODE);
 	msleep(40);
 
-	lh320ws1_panel_cond_set(ctx);
-	lh320ws1_display_condition_set(ctx);
-	lh320ws1_brightness_set(ctx);
-	lh320ws1_etc_source_control(ctx);
-	lh320ws1_etc_pentile_control(ctx);
-	lh320ws1_elvss_nvm_set(ctx);
-	lh320ws1_etc_power_control(ctx);
-	lh320ws1_etc_elvss_control(ctx);*/
+	lh350ws1_panel_cond_set(ctx);
+	lh350ws1_display_condition_set(ctx);
+	lh350ws1_brightness_set(ctx);
+	lh350ws1_etc_source_control(ctx);
+	lh350ws1_etc_pentile_control(ctx);
+	lh350ws1_elvss_nvm_set(ctx);
+	lh350ws1_etc_power_control(ctx);
+	lh350ws1_etc_elvss_control(ctx);*/
 	msleep(ctx->init_delay);
 }
 /*
-static void lh320ws1_set_maximum_return_packet_size(struct lh320ws1 *ctx,
+static void lh350ws1_set_maximum_return_packet_size(struct lh350ws1 *ctx,
 						   u16 size)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
@@ -772,12 +772,12 @@ static void lh320ws1_set_maximum_return_packet_size(struct lh320ws1 *ctx,
 	}
 }
 
-static void lh320ws1_read_mtp_id(struct lh320ws1 *ctx)
+static void lh350ws1_read_mtp_id(struct lh350ws1 *ctx)
 {
 	u8 id[3];
 	int ret, i;
 
-	ret = lh320ws1_dcs_read(ctx, 0xd1, id, ARRAY_SIZE(id));
+	ret = lh350ws1_dcs_read(ctx, 0xd1, id, ARRAY_SIZE(id));
 	if (ret < 0 || ret < ARRAY_SIZE(id) || id[0] == 0x00) {
 		dev_err(ctx->dev, "read id failed\n");
 		ctx->error = -EIO;
@@ -786,38 +786,38 @@ static void lh320ws1_read_mtp_id(struct lh320ws1 *ctx)
 
 	dev_info(ctx->dev, "ID: 0x%2x, 0x%2x, 0x%2x\n", id[0], id[1], id[2]);
 
-	for (i = 0; i < ARRAY_SIZE(lh320ws1_variants); ++i) {
-		if (id[1] == lh320ws1_variants[i].version)
+	for (i = 0; i < ARRAY_SIZE(lh350ws1_variants); ++i) {
+		if (id[1] == lh350ws1_variants[i].version)
 			break;
 	}
-	if (i >= ARRAY_SIZE(lh320ws1_variants)) {
+	if (i >= ARRAY_SIZE(lh350ws1_variants)) {
 		dev_err(ctx->dev, "unsupported display version %d\n", id[1]);
 		ctx->error = -EINVAL;
 		return;
 	}
 
-	ctx->variant = &lh320ws1_variants[i];
+	ctx->variant = &lh350ws1_variants[i];
 	ctx->version = id[1];
 	ctx->id = id[2];
 }*/
 
-static void lh320ws1_set_sequence(struct lh320ws1 *ctx)
+static void lh350ws1_set_sequence(struct lh350ws1 *ctx)
 {
-	//lh320ws1_set_maximum_return_packet_size(ctx, 3);
-	//lh320ws1_read_mtp_id(ctx);
+	//lh350ws1_set_maximum_return_packet_size(ctx, 3);
+	//lh350ws1_read_mtp_id(ctx);
 
-	dev_dbg(ctx->dev, "lh320ws1_set_sequence\n");
-	lh320ws1_panel_init(ctx);
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_SET_DISPLAY_ON);
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_IDLE_MODE);
+	dev_dbg(ctx->dev, "lh350ws1_set_sequence\n");
+	lh350ws1_panel_init(ctx);
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_SET_DISPLAY_ON);
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_EXIT_IDLE_MODE);
 
 }
 
-static int lh320ws1_power_on(struct lh320ws1 *ctx)
+static int lh350ws1_power_on(struct lh350ws1 *ctx)
 {
 	int ret;
 
-	dev_dbg(ctx->dev, "lh320ws1_power_on\n");
+	dev_dbg(ctx->dev, "lh350ws1_power_on\n");
 
 	/*ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 	if (ret < 0)
@@ -826,7 +826,7 @@ static int lh320ws1_power_on(struct lh320ws1 *ctx)
 	msleep(ctx->power_on_delay);
 
 	gpiod_set_value(ctx->reset_gpio, 0);
-	usleep_range(10000, 11000);
+	usleep_range(20000, 21000);
 	gpiod_set_value(ctx->reset_gpio, 1);
 
 	msleep(ctx->reset_delay);
@@ -834,38 +834,38 @@ static int lh320ws1_power_on(struct lh320ws1 *ctx)
 	return 0;
 }
 
-static int lh320ws1_power_off(struct lh320ws1 *ctx)
+static int lh350ws1_power_off(struct lh350ws1 *ctx)
 {
 	return 0;//regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 }
 
-static int lh320ws1_disable(struct drm_panel *panel)
+static int lh350ws1_disable(struct drm_panel *panel)
 {
 	return 0;
 }
 
-static int lh320ws1_unprepare(struct drm_panel *panel)
+static int lh350ws1_unprepare(struct drm_panel *panel)
 {
-	struct lh320ws1 *ctx = panel_to_lh320ws1(panel);
+	struct lh350ws1 *ctx = panel_to_lh350ws1(panel);
 
-	dev_dbg(ctx->dev, "lh320ws1_unprepare\n");
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_ENTER_SLEEP_MODE);
-	lh320ws1_dcs_write_seq_static(ctx, MIPI_DCS_SET_DISPLAY_OFF);
+	dev_dbg(ctx->dev, "lh350ws1_unprepare\n");
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_ENTER_SLEEP_MODE);
+	lh350ws1_dcs_write_seq_static(ctx, MIPI_DCS_SET_DISPLAY_OFF);
 	msleep(40);
 
-	lh320ws1_clear_error(ctx);
+	lh350ws1_clear_error(ctx);
 
-	return lh320ws1_power_off(ctx);
+	return lh350ws1_power_off(ctx);
 }
 
-static int lh320ws1_prepare(struct drm_panel *panel)
+static int lh350ws1_prepare(struct drm_panel *panel)
 {
-	struct lh320ws1 *ctx = panel_to_lh320ws1(panel);
+	struct lh350ws1 *ctx = panel_to_lh350ws1(panel);
 	int ret;
 
-	dev_dbg(ctx->dev, "lh320ws1_prepare\n");
+	dev_dbg(ctx->dev, "lh350ws1_prepare\n");
 
-	ret = lh320ws1_power_on(ctx);
+	ret = lh350ws1_power_on(ctx);
 	if (ret < 0)
 		return ret;
 
@@ -874,28 +874,28 @@ static int lh320ws1_prepare(struct drm_panel *panel)
 	return ret;
 }
 
-static int lh320ws1_enable(struct drm_panel *panel)
+static int lh350ws1_enable(struct drm_panel *panel)
 {
-	struct lh320ws1 *ctx = panel_to_lh320ws1(panel);
+	struct lh350ws1 *ctx = panel_to_lh350ws1(panel);
 	int ret;
-	lh320ws1_set_sequence(ctx);
+	lh350ws1_set_sequence(ctx);
 	ret = ctx->error;
 
 	if (ret < 0)
-		lh320ws1_unprepare(panel);
+		lh350ws1_unprepare(panel);
 
 
 	return 0;
 }
 
-static int lh320ws1_get_modes(struct drm_panel *panel)
+static int lh350ws1_get_modes(struct drm_panel *panel)
 {
 	struct drm_connector *connector = panel->connector;
-	struct lh320ws1 *ctx = panel_to_lh320ws1(panel);
+	struct lh350ws1 *ctx = panel_to_lh350ws1(panel);
 	struct drm_display_mode *mode;
 
 
-	dev_dbg(ctx->dev, "lh320ws1_get_modes\n");
+	dev_dbg(ctx->dev, "lh350ws1_get_modes\n");
 
 
 	mode = drm_mode_create(connector->dev);
@@ -916,15 +916,15 @@ static int lh320ws1_get_modes(struct drm_panel *panel)
 	return 1;
 }
 
-static const struct drm_panel_funcs lh320ws1_drm_funcs = {
-	.disable = lh320ws1_disable,
-	.unprepare = lh320ws1_unprepare,
-	.prepare = lh320ws1_prepare,
-	.enable = lh320ws1_enable,
-	.get_modes = lh320ws1_get_modes,
+static const struct drm_panel_funcs lh350ws1_drm_funcs = {
+	.disable = lh350ws1_disable,
+	.unprepare = lh350ws1_unprepare,
+	.prepare = lh350ws1_prepare,
+	.enable = lh350ws1_enable,
+	.get_modes = lh350ws1_get_modes,
 };
 
-static int lh320ws1_parse_dt(struct lh320ws1 *ctx)
+static int lh350ws1_parse_dt(struct lh350ws1 *ctx)
 {
 	struct device *dev = ctx->dev;
 	struct device_node *np = dev->of_node;
@@ -946,13 +946,13 @@ static int lh320ws1_parse_dt(struct lh320ws1 *ctx)
 	return 0;
 }
 
-static int lh320ws1_probe(struct mipi_dsi_device *dsi)
+static int lh350ws1_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
-	struct lh320ws1 *ctx;
+	struct lh350ws1 *ctx;
 	int ret;
 
-	ctx = devm_kzalloc(dev, sizeof(struct lh320ws1), GFP_KERNEL);
+	ctx = devm_kzalloc(dev, sizeof(struct lh350ws1), GFP_KERNEL);
 	if (!ctx)
 		return -ENOMEM;
 
@@ -967,7 +967,7 @@ static int lh320ws1_probe(struct mipi_dsi_device *dsi)
 		| MIPI_DSI_MODE_VIDEO_HSA | MIPI_DSI_MODE_EOT_PACKET
 		| MIPI_DSI_MODE_VSYNC_FLUSH | MIPI_DSI_MODE_VIDEO_AUTO_VERT;
 
-	ret = lh320ws1_parse_dt(ctx);
+	ret = lh350ws1_parse_dt(ctx);
 	if (ret < 0)
 		return ret;
 
@@ -991,7 +991,7 @@ static int lh320ws1_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_init(&ctx->panel);
 	ctx->panel.dev = dev;
-	ctx->panel.funcs = &lh320ws1_drm_funcs;
+	ctx->panel.funcs = &lh350ws1_drm_funcs;
 
 	ret = drm_panel_add(&ctx->panel);
 	if (ret < 0)
@@ -1004,9 +1004,9 @@ static int lh320ws1_probe(struct mipi_dsi_device *dsi)
 	return ret;
 }
 
-static int lh320ws1_remove(struct mipi_dsi_device *dsi)
+static int lh350ws1_remove(struct mipi_dsi_device *dsi)
 {
-	struct lh320ws1 *ctx = mipi_dsi_get_drvdata(dsi);
+	struct lh350ws1 *ctx = mipi_dsi_get_drvdata(dsi);
 
 	mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
@@ -1014,22 +1014,22 @@ static int lh320ws1_remove(struct mipi_dsi_device *dsi)
 	return 0;
 }
 
-static const struct of_device_id lh320ws1_of_match[] = {
-	{ .compatible = "lg,lh320ws1" },
+static const struct of_device_id lh350ws1_of_match[] = {
+	{ .compatible = "lg,lh350ws1" },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, lh320ws1_of_match);
+MODULE_DEVICE_TABLE(of, lh350ws1_of_match);
 
-static struct mipi_dsi_driver lh320ws1_driver = {
-	.probe = lh320ws1_probe,
-	.remove = lh320ws1_remove,
+static struct mipi_dsi_driver lh350ws1_driver = {
+	.probe = lh350ws1_probe,
+	.remove = lh350ws1_remove,
 	.driver = {
-		.name = "panel-lg-lh320ws1",
-		.of_match_table = lh320ws1_of_match,
+		.name = "panel-lg-lh350ws1",
+		.of_match_table = lh350ws1_of_match,
 	},
 };
-module_mipi_dsi_driver(lh320ws1_driver);
+module_mipi_dsi_driver(lh350ws1_driver);
 
 
-MODULE_DESCRIPTION("MIPI-DSI based lh320ws1 LCD Panel Driver");
+MODULE_DESCRIPTION("MIPI-DSI based lh350ws1 LCD Panel Driver");
 MODULE_LICENSE("GPL v2");

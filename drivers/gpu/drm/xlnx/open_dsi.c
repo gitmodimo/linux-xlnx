@@ -152,7 +152,7 @@ struct open_dsi {
 static inline void open_dsi_writel(void __iomem *base, int offset, u32 val)
 {
 
-	printk("open DSI: 0x%02X <= 0x%02X\n",offset,val);
+	//printk("open DSI: 0x%02X <= 0x%02X\n",offset,val);
 	writel(val, base + offset);
 }
 
@@ -160,7 +160,7 @@ static inline u32 open_dsi_readl(void __iomem *base, int offset)
 {
 
 	u32 val=readl(base + offset);
-	printk("open DSI: 0x%02X => 0x%02X\n",offset,val);
+	//printk("open DSI: 0x%02X => 0x%02X\n",offset,val);
 	return val;
 }
 
@@ -210,26 +210,25 @@ static void open_dsi_set_config_parameters(struct open_dsi *dsi)
 static void open_dsi_set_display_mode(struct open_dsi *dsi)
 {
 	struct videomode *vm = &dsi->vm;
-
+	int ret;
 	dev_info(dsi->dev, "open_dsi_set_display_mode\n");
 
 
 
 	open_dsi_writel(dsi->iomem, REG_TIMING_CTL, 0); // disable core, force LP mode
-	open_dsi_writel(dsi->iomem, REG_DSI_LANE_CTL, dsi->lanes);
+	open_dsi_writel(dsi->iomem, REG_DSI_LANE_CTL, 0x2004);//0x2018);//dsi->lanes);
 	open_dsi_writel(dsi->iomem, REG_DSI_CTL, 0); // disable core
 	open_dsi_writel(dsi->iomem, REG_DSI_TICKDIV, dsi->lp_divider);
 
 	dsi->dsi_ctl = (dsi->lanes << 8);
 	open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl); /* disable DSI clock, set lane count */
 
-	dev_info(dsi->dev, "dsi->dsi_ctl %x\n",dsi->dsi_ctl);
 
 
 	open_dsi_writel(dsi->iomem, REG_H_FRONT_PORCH, vm->hfront_porch);
-	open_dsi_writel(dsi->iomem, REG_H_BACK_PORCH, vm->vback_porch);
+	open_dsi_writel(dsi->iomem, REG_H_BACK_PORCH, vm->hback_porch);
 	open_dsi_writel(dsi->iomem, REG_H_ACTIVE, vm->hactive * 3);
-	open_dsi_writel(dsi->iomem, REG_H_TOTAL, vm->vsync_len);//panel->frame_gap);
+	open_dsi_writel(dsi->iomem, REG_H_TOTAL,10000);// vm->vsync_len);//panel->frame_gap);
 	open_dsi_writel(dsi->iomem, REG_V_BACK_PORCH, vm->vback_porch);
 	open_dsi_writel(dsi->iomem, REG_V_FRONT_PORCH, vm->vback_porch + vm->vactive);
 	open_dsi_writel(dsi->iomem, REG_V_ACTIVE,
@@ -238,6 +237,11 @@ static void open_dsi_set_display_mode(struct open_dsi *dsi)
 			vm->vback_porch + vm->vactive + vm->vfront_porch);
 
 	dev_dbg(dsi->dev, "LCD size = %dx%d\n", vm->hactive, vm->vactive);
+
+
+
+
+
 
 	/*
 	u32 reg, video_mode;
@@ -300,7 +304,7 @@ static void open_dsi_set_display_enable(struct open_dsi *dsi)
 
 	dev_info(dsi->dev, "open_dsi_set_display_enable\n");
 
-
+	//return;
 
 	if (dsi->panel) {
 		ret = drm_panel_prepare(dsi->panel);
@@ -308,8 +312,14 @@ static void open_dsi_set_display_enable(struct open_dsi *dsi)
 			goto err_put_sync;
 	}
 
-	 dsi->dsi_ctl |= 1;
-	 open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl); /* enable DSI clock */
+
+	open_dsi_writel(dsi->iomem, REG_DSI_GPIO, 0x1); /* reset the display */
+	msleep(1);
+	open_dsi_writel(dsi->iomem, REG_DSI_GPIO, 0x3); /* un-reset the display */
+
+
+	dsi->dsi_ctl |= 1;
+	open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl); /* enable DSI clock */
 
 	if (dsi->panel) {
 		ret = drm_panel_enable(dsi->panel);
@@ -317,18 +327,23 @@ static void open_dsi_set_display_enable(struct open_dsi *dsi)
 			goto err_display_disable;
 	}
 
+
+
+	dev_info(dsi->dev, "open_dsi_writel(dsi->iomem, REG_TIMING_CTL, 1);\n");
 	open_dsi_writel(dsi->iomem, REG_TIMING_CTL, 1); /* start display refresh */
 
-
+	//msleep(100);
 	/*reg = open_dsi_readl(dsi->iomem, XDSI_CCR);
 	reg |= XDSI_CCR_COREENB;
 
 	open_dsi_writel(dsi->iomem, XDSI_CCR, reg);
 	dev_dbg(dsi->dev, "MIPI DSI Tx controller is enabled.\n");*/
-err_display_disable:
+
+	return;
+	err_display_disable:
 	drm_panel_unprepare(dsi->panel);
 
-err_put_sync:
+	err_put_sync:
 	return;
 }
 
@@ -491,36 +506,36 @@ static int open_dsi_host_detach(struct mipi_dsi_host *host,
 
 static inline uint8_t parity(uint32_t d)
 {
-    int i, p = 0;
+	int i, p = 0;
 
-    for (i = 0; i < 32; i++)
-        p ^= d & (1 << i) ? 1 : 0;
-    return p;
+	for (i = 0; i < 32; i++)
+		p ^= d & (1 << i) ? 1 : 0;
+	return p;
 }
 
 static uint8_t reverse_bits(uint8_t x)
 {
-    uint8_t r = 0;
-    int     i;
+	uint8_t r = 0;
+	int     i;
 
-    for (i = 0; i < 8; i++)
-        if (x & (1 << i)) r |= (1 << (7 - i));
-    return r;
+	for (i = 0; i < 8; i++)
+		if (x & (1 << i)) r |= (1 << (7 - i));
+	return r;
 }
 
 /* calculates DSI packet header ECC checksum */
 static uint8_t dsi_ecc(uint32_t data)
 {
-    uint8_t ecc = 0;
-    int     i;
-    static const uint32_t masks[] =
-    { 0xf12cb7, 0xf2555b, 0x749a6d, 0xb8e38e, 0xdf03f0, 0xeffc00 };
+	uint8_t ecc = 0;
+	int     i;
+	static const uint32_t masks[] =
+	{ 0xf12cb7, 0xf2555b, 0x749a6d, 0xb8e38e, 0xdf03f0, 0xeffc00 };
 
-    for (i = 0; i < 6; i++)
-        if (parity(data & masks[i]))
-            ecc |= (1 << i);
+	for (i = 0; i < 6; i++)
+		if (parity(data & masks[i]))
+			ecc |= (1 << i);
 
-    return ecc;
+	return ecc;
 }
 
 int dsi_ctl = 0;
@@ -528,84 +543,84 @@ int dsi_ctl = 0;
 /* Sends a single byte to the display in low power mode */
 void dsi_lp_write_byte(struct open_dsi *dsi,uint32_t value)
 {
-    int rv = 0;
+	int rv = 0;
 
-    open_dsi_writel(dsi->iomem, REG_DSI_CTL, (dsi->dsi_ctl | 2));
+	open_dsi_writel(dsi->iomem, REG_DSI_CTL, (dsi->dsi_ctl | 2));
 
-    while (!(open_dsi_readl(dsi->iomem,REG_DSI_CTL)& 2)) ;//TODO: tak czekac?
-    open_dsi_writel(dsi->iomem, REG_LP_TX, value | 0x100);
+	while (!(open_dsi_readl(dsi->iomem,REG_DSI_CTL)& 2)) ;//TODO: tak czekac?
+	open_dsi_writel(dsi->iomem, REG_LP_TX, value | 0x100);
 
-    while (!(open_dsi_readl(dsi->iomem,REG_DSI_CTL) & 2)) ;
+	while (!(open_dsi_readl(dsi->iomem,REG_DSI_CTL) & 2)) ;
 }
 
 /* Composes a short packet and sends it in low power mode to the display */
 void dsi_send_lp_short(struct open_dsi *dsi,uint8_t ptype, uint8_t w0, uint8_t w1)
 {
-    uint8_t  pdata[4];
-    uint32_t d;
+	uint8_t  pdata[4];
+	uint32_t d;
 
-    dsi_lp_write_byte(dsi,0xe1);
-    dsi_lp_write_byte(dsi,reverse_bits(ptype));
-    dsi_lp_write_byte(dsi,reverse_bits(w0));
-    dsi_lp_write_byte(dsi,reverse_bits(w1));
-    dsi_lp_write_byte(dsi,reverse_bits(dsi_ecc(ptype |
-                                           (((uint32_t)w0) <<
-    8) | (((uint32_t)w1) << 16))));
-    open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl);
+	dsi_lp_write_byte(dsi,0xe1);
+	dsi_lp_write_byte(dsi,reverse_bits(ptype));
+	dsi_lp_write_byte(dsi,reverse_bits(w0));
+	dsi_lp_write_byte(dsi,reverse_bits(w1));
+	dsi_lp_write_byte(dsi,reverse_bits(dsi_ecc(ptype |
+			(((uint32_t)w0) <<
+					8) | (((uint32_t)w1) << 16))));
+	open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl);
 }
 
 uint16_t dsi_crc(const uint8_t *d, int n)
 {
-    uint16_t poly = 0x8408;
+	uint16_t poly = 0x8408;
 
-    int byte_counter;
-    int bit_counter;
-    uint8_t  current_data;
-    uint16_t result = 0xffff;
+	int byte_counter;
+	int bit_counter;
+	uint8_t  current_data;
+	uint16_t result = 0xffff;
 
-    for (byte_counter = 0; byte_counter < n; byte_counter++) {
-        current_data = d[byte_counter];
+	for (byte_counter = 0; byte_counter < n; byte_counter++) {
+		current_data = d[byte_counter];
 
-        for (bit_counter = 0; bit_counter < 8; bit_counter++)
-        {
-            if (((result & 0x0001) ^ ((current_data) & 0x0001)))
-                result = ((result >> 1) & 0x7fff) ^ poly;
-            else
-                result = ((result >> 1) & 0x7fff);
-            current_data = (current_data >> 1); // & 0x7F;
-        }
-    }
-    return result;
+		for (bit_counter = 0; bit_counter < 8; bit_counter++)
+		{
+			if (((result & 0x0001) ^ ((current_data) & 0x0001)))
+				result = ((result >> 1) & 0x7fff) ^ poly;
+			else
+				result = ((result >> 1) & 0x7fff);
+			current_data = (current_data >> 1); // & 0x7F;
+		}
+	}
+	return result;
 }
 
 void dsi_long_write(struct open_dsi *dsi,int is_dcs, const unsigned char *data, int length)
 {
-    uint8_t w1 = 0;
-    uint8_t w0 = length;
+	uint8_t w1 = 0;
+	uint8_t w0 = length;
 
-    uint8_t ptype = is_dcs ? 0x39 : 0x29;
-    //printf("pp_long write: %d bytes ptype %x\n", length, ptype);
+	uint8_t ptype = is_dcs ? 0x39 : 0x29;
+	//printf("pp_long write: %d bytes ptype %x\n", length, ptype);
 
-    dsi_lp_write_byte(dsi,0xe1);
-    dsi_lp_write_byte(dsi,reverse_bits(ptype));
-    dsi_lp_write_byte(dsi,reverse_bits(w0));
-    dsi_lp_write_byte(dsi,reverse_bits(w1));
-    dsi_lp_write_byte(dsi,reverse_bits(dsi_ecc(ptype |
-                                           (((uint32_t)w0) <<
-    8) | (((uint32_t)w1) << 16))));
+	dsi_lp_write_byte(dsi,0xe1);
+	dsi_lp_write_byte(dsi,reverse_bits(ptype));
+	dsi_lp_write_byte(dsi,reverse_bits(w0));
+	dsi_lp_write_byte(dsi,reverse_bits(w1));
+	dsi_lp_write_byte(dsi,reverse_bits(dsi_ecc(ptype |
+			(((uint32_t)w0) <<
+					8) | (((uint32_t)w1) << 16))));
 
-    int i;
+	int i;
 
-    for (i = 0; i < length; i++)
-        dsi_lp_write_byte(dsi,reverse_bits(data[i]));
+	for (i = 0; i < length; i++)
+		dsi_lp_write_byte(dsi,reverse_bits(data[i]));
 
-    uint16_t crc = dsi_crc(data, length);
+	uint16_t crc = dsi_crc(data, length);
 
-    crc = 0x0000;
+	crc = 0x0000;
 
-    dsi_lp_write_byte(dsi,reverse_bits(crc & 0xff));
-    dsi_lp_write_byte(dsi,reverse_bits(crc >> 8));
-    open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl);
+	dsi_lp_write_byte(dsi,reverse_bits(crc & 0xff));
+	dsi_lp_write_byte(dsi,reverse_bits(crc >> 8));
+	open_dsi_writel(dsi->iomem, REG_DSI_CTL, dsi->dsi_ctl);
 }
 
 
@@ -618,6 +633,7 @@ ssize_t open_dsi_host_transfer(struct mipi_dsi_host *host,
 	struct open_dsi *dsi = host_to_dsi(host);
 	const u8 *tx=msg->tx_buf;
 	int i;
+	int rv = 0;
 	dev_info(dsi->dev, "open_dsi_host_transfer\n");
 
 	printk("MSG type %02X txlen %d:",msg->type,msg->tx_len);
@@ -629,21 +645,31 @@ ssize_t open_dsi_host_transfer(struct mipi_dsi_host *host,
 
 	switch(msg->type){
 	default:
-		return 0;
+		rv=0;
 		break;
 	case MIPI_DSI_DCS_SHORT_WRITE:
 		dsi_send_lp_short(dsi,MIPI_DSI_DCS_SHORT_WRITE,tx[0],0);
-		return 1;
+		rv=1;
 		break;
 	case MIPI_DSI_DCS_SHORT_WRITE_PARAM:
 		dsi_send_lp_short(dsi,MIPI_DSI_DCS_SHORT_WRITE,tx[0],tx[1]);
-		return 2;
+		rv=2;
 		break;
 	case MIPI_DSI_DCS_LONG_WRITE:
 		dsi_long_write(dsi,1,tx,msg->tx_len);
-		return msg->tx_len;
+		rv=msg->tx_len;
 		break;
 	};
+
+
+	/*if( msg->type == 0x5 && msg->tx_len > 0 && tx[0] == 0x38)
+	{
+		printk("enabling display refresh [hack]\n");
+		open_dsi_writel(dsi->iomem, REG_TIMING_CTL, 1); //start display refresh
+
+	}*/
+
+	return rv;
 }
 
 

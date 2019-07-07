@@ -426,6 +426,7 @@ static int ili9881c_dsi_probe(struct mipi_dsi_device *dsi)
 	struct device_node *np;
 	struct ili9881c *ctx;
 	int ret;
+    dev_info(&dsi->dev, "probing ili9881c_dsi_probe\n"); 
 
 	ctx = devm_kzalloc(&dsi->dev, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
