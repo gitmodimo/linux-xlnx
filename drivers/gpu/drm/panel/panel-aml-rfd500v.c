@@ -50,6 +50,7 @@ struct aml_rfd500v {
 	u8 id;
 	//int brightness;
 
+	struct kobject *kobj;
 	/* This field is tested by functions directly accessing DSI bus before
 	 * transfer, transfer is skipped if it is set. In case of transfer
 	 * failure or unexpected response the field is set to error value.
@@ -58,6 +59,11 @@ struct aml_rfd500v {
 	 */
 	int error;
 };
+
+
+
+
+
 
 static inline struct aml_rfd500v *panel_to_aml_rfd500v(struct drm_panel *panel)
 {
@@ -87,6 +93,53 @@ static void aml_rfd500v_dcs_write(struct aml_rfd500v *ctx, const void *data, siz
 		ctx->error = ret;
 	}
 }
+
+
+
+
+
+static ssize_t dcs_write_store(struct device *dev,
+		 struct device_attribute *attr,
+        const char *buff, size_t count)
+{
+	struct mipi_dsi_device *dsi = to_mipi_dsi_device(dev);
+    struct aml_rfd500v *ctx = mipi_dsi_get_drvdata(dsi);
+
+
+    int ptr=buff;
+    int val=0;
+    int readl=0;
+    int readlt=0;
+    int rdctr=0;
+    int r;
+    u8 d[64];
+	//printk("DSC write:",val);
+    while(readlt<count){
+    	r=sscanf(ptr,"%x%n",&val,&readl);
+    	if(r<=0)
+    		break;
+    	d[rdctr++]=val;
+    	//printk(KERN_CONT" 0x%02x",val);
+    	ptr+=readl;
+    	readlt+=readl;
+    }
+
+	//printk(KERN_CONT".\n",val);
+	aml_rfd500v_dcs_write(ctx,d,rdctr);
+    return count;
+}
+
+static DEVICE_ATTR_WO(dcs_write);
+
+static struct attribute *attrs[] = {
+    &dev_attr_dcs_write.attr,
+    NULL,
+};
+
+static struct attribute_group attr_group = {
+    .attrs = attrs,
+};
+
 
 
 
@@ -262,26 +315,78 @@ static struct LCM_setting_table lcm_initialization_settingq[] =
 
 static struct LCM_setting_table lcm_initialization_setting[] =
 {
-	{0xFF,5,{0xFF,0x98,0x06,0x04,0x01}},
-	{0x08,1,{0x10}},
-	{0x21,1,{0x01}},
-	{0x30,1,{0x01}},
-	{0x31,1,{0x00}},
-	{0x40,1,{0x16}},
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x01}},//page 1
+	{0x08,1,{0x10}},//spi sda pin
+	{0x21,1,{0x01}},//polarities
+
+	{0x25,1,{0x08}},//VFP
+	{0x26,1,{0x14}},//VBP
+	{0x27,1,{0x32}},//HBP
+	{0x28,1,{0x01}},//HBP MSB
+
+	{0x30,1,{0x01}},//480x854
+	{0x31,1,{0x00}},//inversion columnwise
+
+	/*1*/
+	{0x40,1,{0x10}},
 	{0x41,1,{0x33}},
 	{0x42,1,{0x03}},
 	{0x43,1,{0x09}},
-	{0x44,1,{0x06}},
+	{0x44,1,{0x07}},
 	{0x50,1,{0x78}},
 	{0x51,1,{0x78}},
 	{0x52,1,{0x00}},
-    {0x53, 1,  {0x4b}},
+	{0x53,1,{0x40}},
 	{0x60,1,{0x07}},
-	{0x61,1,{0x04}},
-	{0x62,1,{0x07}},
-	{0x63,1,{0x02}},
+	{0x61,1,{0x00}},
+	{0x62,1,{0x08}},
+	{0x63,1,{0x00}},
 
- {0xA0,1,{0x00}},
+
+	/*2*
+	{0x60,1,{0x07}},
+	{0x61,1,{0x06}},
+	{0x62,1,{0x06}},
+	{0x63,1,{0x04}},
+
+	{0x40,1,{0x18}},
+	{0x41,1,{0x33}},
+	{0x42,1,{0x11}},//0x12
+	{0x43,1,{0x09}},//0x89
+	{0x44,1,{0x0C}},//0x86
+	{0x46,1,{0x55}},
+	{0x47,1,{0x55}},
+	{0x45,1,{0x14}},
+
+	{0x50,1,{0x50}},
+	{0x51,1,{0x50}},
+	{0x52,1,{0x00}},
+	{0x53,1,{0x38}},
+	*/
+
+	/*my
+	{0x40,1,{0x16}},//DDVDH/DDVDL: VCIx3=8,4 / VCIx-2,5=-7 default 0x15
+	{0x41,1,{0x33}},//DDVDH/DDVDL clamp 6 -6 default 0x22 5 -5
+	{0x42,1,{0x03}},//VGH VGL 2DDVDH-DDVDL  /  DDVDL-DDVDH  // VGH=23 VGL-15,4
+	{0x43,1,{0x09}},//VGH clamp 15V - disabled
+	{0x44,1,{0x06}},//VGL clamp -9.5 - disabled --default enabled 0x86
+	//45 vgh_reg vgl_reg
+	//46 stepup freq
+	//47 stepup freq
+	{0x50,1,{0x78}},//VREG1OUT positive gamma 4.5V
+	{0x51,1,{0x78}},//VREG2OUT neatibe gamma -4.5V
+	{0x52,1,{0x00}},//msb dla 53
+    {0x53, 1,  {0x4b}},//VCM1 -1.125 --default 6F -1.575
+	//54 55 VCM2
+	//56 NV mem set VCM1 VCM2 voltage
+	//57 lvd detect
+	//58 deep standby
+	{0x60,1,{0x07}},//source sdt timming SDTI default 0x5
+	{0x61,1,{0x04}},//source cr timmint CRTI def 0x5
+	{0x62,1,{0x07}},//source eq timming EQTI def 0xe
+	{0x63,1,{0x02}},//source pc timming PCTI def 0x5*/
+//80- 83synchr timming adjust
+ {0xA0,1,{0x00}},//positive gamma
 {0xA1,1,{0x1e}},
 {0xA2,1,{0x20}},
 {0xA3,1,{0x0D}},
@@ -300,7 +405,7 @@ static struct LCM_setting_table lcm_initialization_setting[] =
 
 
 
-{0xC0,1,{0x00}},
+{0xC0,1,{0x00}},//negative gamma
 {0xC1,1,{0x0e}},
 {0xC2,1,{0x15}},
 {0xC3,1,{0x0b}},
@@ -317,7 +422,7 @@ static struct LCM_setting_table lcm_initialization_setting[] =
 {0xCE,1,{0x26}},
 {0xCF,1,{0x00}},
 
-	{0xFF,5,{0xFF,0x98,0x06,0x04,0x06}},
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x06}},//GIP setting timming?? wtf
 	{0x00,1,{0x20}},
 	{0x01,1,{0x0A}},
 	{0x02,1,{0x00}},
@@ -373,15 +478,55 @@ static struct LCM_setting_table lcm_initialization_setting[] =
 	{0x3E,1,{0x22}},
 	{0x3F,1,{0x89}},
 	{0x40,1,{0x22}},
-    {0xFF, 5,  {0xFF,0x98,0x06,0x04,0x07}},
-	{0x18,1,{0x1D}},
-	{0x06,1,{0x00}},
-	{0xFF,5,{0xFF,0x98,0x06,0x04,0x00}},
-	{0x11,1,{0x00}},
-    {REGFLAG_DELAY, 150, {}},
-	{0x29,1,{0x00}},
-	{0xFF,5,{0xFF,0x98,0x06,0x04,0x01}},
 
+	/*1*/
+	{0x52,1,{0x10}},
+	{0x53,1,{0x10}},  //VGLO refer VGL_REG
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x07}},
+	//{0x18,1,{0x1d}},
+	{0x17,1,{0x22}},
+	{0x02,1,{0x77}},
+	{0xE1,1,{0x79}},
+	{0x18,1,{0x1d}},
+	{0x26,1,{0xb2}},
+	{0x06,1,{0x13}},
+
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x00}},
+	//{0x35, 1, {0X00}},
+	{0x11, 1, {0X00}},
+	{REGFLAG_DELAY, 120, {}},
+	{0x29,1,{0}},
+	{REGFLAG_DELAY, 120, {}},
+	{0x38,1,{0}},
+	{REGFLAG_DELAY, 120, {}},
+	{0x21,1,{0}},
+
+/*2*
+	{0x52,1,{0x12}},
+	{0x53,1,{0x12}},
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x07}},
+	{0x17,1,{0x32}},
+	{0x02,1,{0x17}},
+	{0x18,1,{0x1D}},
+	{0xE1,1,{0x79}},
+
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x00}},
+	{0x3A,1,{0x70}},//0x50
+	{0x11,0,{}},
+	{REGFLAG_DELAY,150,{0x00}},
+	{0x29,0,{}},
+	{REGFLAG_DELAY,150,{0x00}},
+*/
+	/*my
+    {0xFF, 5,  {0xFF,0x98,0x06,0x04,0x07}},
+	{0x18,1,{0x1D}},//VREG en
+	{0x06,1,{0x00}},//VCL -2.8 default 0x1 -3.0
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x00}},
+	{0x11,1,{0x00}},//seep out
+    {REGFLAG_DELAY, 150, {}},
+	{0x29,1,{0x00}},//disp on
+	{0xFF,5,{0xFF,0x98,0x06,0x04,0x01}},
+*/
     {REGFLAG_DELAY, 20, {}},
 	 // Note
 	 // Strongly recommend not to set Sleep out / Display On here. That will cause messed frame to be shown as later the backlight is on.
@@ -448,7 +593,7 @@ static void aml_rfd500v_set_sequence(struct aml_rfd500v *ctx)
 	//usleep_range(2200000, 2210000);
 	aml_rfd500v_dcs_write_seq_static(ctx, MIPI_DCS_SOFT_RESET);
 	usleep_range(1200000, 1210000);
-	push_table(ctx,lcm_initialization_settingq, sizeof(lcm_initialization_settingq) / sizeof(struct LCM_setting_table), 1);
+	push_table(ctx,lcm_initialization_setting, sizeof(lcm_initialization_setting) / sizeof(struct LCM_setting_table), 1);
 
 	//push_table(ctx,set_page_0, sizeof(set_page_0) / sizeof(struct LCM_setting_table), 1);
 	//usleep_range(2200000, 2210000);
@@ -679,8 +824,17 @@ static int aml_rfd500v_probe(struct mipi_dsi_device *dsi)
 		return ret;
 
 	ret = mipi_dsi_attach(dsi);
+
+
+
+
+
 	if (ret < 0)
 		drm_panel_remove(&ctx->panel);
+
+	//ctx->kobj = kobject_create_and_add("aml_lcd", NULL);
+	ret = sysfs_create_group(&dev->kobj, &attr_group);
+
 
 	return ret;
 }
@@ -689,6 +843,8 @@ static int aml_rfd500v_remove(struct mipi_dsi_device *dsi)
 {
 	struct aml_rfd500v *ctx = mipi_dsi_get_drvdata(dsi);
 
+
+//	kobject_put(ctx->kobj);
 	mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
 
